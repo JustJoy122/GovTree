@@ -1,0 +1,46 @@
+name: Deploy Education System Map
+on:
+  push:
+    branches: [ main ]   # 根据你的主分支名称调整
+  workflow_dispatch:      # 允许手动触发
+
+# 设置 GITHUB_TOKEN 的权限，允许部署到 Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 只允许一个并发部署
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 生成 tree.json
+        run: python generate_tree.py
+
+      - name: 上传生成的静态文件 (dist/)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist           # 确保 dist 目录中包含 tree.json 及后续的前端页面
+
+      - name: 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
